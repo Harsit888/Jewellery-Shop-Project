@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Enterprise Admin Dashboard</title>
+  <link rel="stylesheet" href="admin-style.css">
+  <!-- Chart.js for Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="admin-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <h2>Luxe Admin</h2>
+      <ul>
+        <li class="active" onclick="switchTab('analytics')">📊 Visual Analytics</li>
+        <li onclick="switchTab('orders')">📦 Orders & Invoices</li>
+        <li onclick="switchTab('products')">💎 Inventory Controls</li>
+        <li onclick="switchTab('customers')">👥 Registered Customers</li>
+        <li onclick="switchTab('coupons')">🏷️ Promo Codes</li>
+        <li onclick="switchTab('rates')">📈 Metal Rates</li>
+      </ul>
+      <button onclick="lockDashboard()" style="margin-top:20px; background:#d9534f; color:#fff; border:none; padding:10px 12px; border-radius:4px; cursor:pointer; width:100%; font-weight:bold;">🔒 Logout</button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Visual Analytics Section -->
+      <section id="tab-analytics" class="tab-content active">
+        <h1>Overview & Visual Insights</h1>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Total Revenue</h3>
+            <p id="stat-total-sales">₹0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Total Orders</h3>
+            <p id="stat-total-orders">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Total Inventory Items</h3>
+            <p id="stat-total-products">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Low Stock Warnings</h3>
+            <p id="stat-low-stock" style="color:red;">0</p>
+          </div>
+        </div>
+
+        <div class="admin-card" style="margin-top:20px;">
+          <h3>Revenue & Sales Trend</h3>
+          <canvas id="salesChart" style="max-height: 300px;"></canvas>
+        </div>
+      </section>
+
+      <!-- Orders & Invoices Section -->
+      <section id="tab-orders" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h1>Manage Orders</h1>
+          <button onclick="exportOrdersToCSV()" class="admin-btn" style="background:#28a745;">📥 Export CSV</button>
+        </div>
+        
+        <div class="admin-card">
+          <h3>Customer Orders History</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer Details</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Update Status</th>
+                <th>Invoice</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-list"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Products Management Section -->
+      <section id="tab-products" class="tab-content">
+        <h1>Inventory Controls & Add Product</h1>
+        
+        <!-- Add Product Form -->
+        <div class="admin-card">
+          <h3>Add New Product</h3>
+          <form id="add-product-form" onsubmit="handleAddProduct(event)">
+            <input type="text" id="prod-name" placeholder="Product Name" required>
+            
+            <select id="prod-category" onchange="handleCategoryChange(this.value)" required>
+              <option value="Rings">Rings</option>
+              <option value="Necklaces">Necklaces</option>
+              <option value="Bracelets">Bracelets</option>
+              <option value="Pendant">Pendant</option>
+              <option value="Gold">Gold</option>
+              <option value="Silver">Silver</option>
+            </select>
+            
+            <select id="prod-purity" required>
+              <option value="24K">24K Gold</option>
+              <option value="22K">22K Gold</option>
+              <option value="20K">20K Gold</option>
+              <option value="18K">18K Gold</option>
+            </select>
+
+            <input type="number" id="prod-weight" placeholder="Weight (in Grams)" step="0.1" required>
+            <input type="number" id="prod-making" placeholder="Making Charge (₹)" required>
+            <input type="number" id="prod-stock" placeholder="Stock Quantity" required>
+            <label style="display:block; font-size:12px; margin-top:10px; margin-bottom:4px; font-weight:bold;">Product Image:</label>
+            <input type="file" id="prod-image-file" accept="image/*" required style="padding: 5px;">
+            <button type="submit" class="admin-btn">Add Product</button>
+          </form>
+        </div>
+
+        <!-- Product Table -->
+        <div class="admin-card">
+          <h3>Existing Inventory</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Purity</th>
+                <th>Stock Status</th>
+                <th>Quick Edit Stock</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-products-list"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Customers Management Section (REGISTERED USERS) -->
+      <section id="tab-customers" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h1>Registered Customers (Sign-up Data)</h1>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="loadRegisteredCustomers()" class="admin-btn" style="background:#17a2b8;">🔄 Refresh</button>
+            <button onclick="exportCustomersToCSV()" class="admin-btn" style="background:#28a745;">📥 Export Customers CSV</button>
+          </div>
+        </div>
+        
+        <div class="admin-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Customer Name</th>
+                <th>Email Address</th>
+                <th>Phone Number</th>
+                <th>User ID</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-customers-list">
+              <!-- Registered Users Auto-Load Here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Promo Code Management Section -->
+      <section id="tab-coupons" class="tab-content">
+        <h1>Manage Promo Codes</h1>
+        <div class="admin-card">
+          <h3>Add New Coupon</h3>
+          <form id="add-coupon-form" onsubmit="handleAddCoupon(event)">
+            <input type="text" id="coupon-code" placeholder="Coupon Code (e.g. LUXE20)" required style="text-transform:uppercase;">
+            <select id="coupon-type" required>
+              <option value="percentage">Percentage Off (%)</option>
+              <option value="flat">Flat Discount (₹)</option>
+            </select>
+            <input type="number" id="coupon-value" placeholder="Discount Value" required>
+            <button type="submit" class="admin-btn">Create Coupon</button>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <h3>Active Coupons</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Discount</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-coupons-list"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Rates Management Section -->
+      <section id="tab-rates" class="tab-content">
+        <h1>Update Live Metal Rates</h1>
+        <div class="admin-card">
+          <form onsubmit="handleUpdateRates(event)">
+            <label>Gold 24K Rate (Per 10g):</label>
+            <input type="number" id="rate-24k" required>
+            
+            <label>Gold 22K Rate (Per 10g):</label>
+            <input type="number" id="rate-22k" required>
+            
+            <label>Gold 20K Rate (Per 10g):</label>
+            <input type="number" id="rate-20k" required>
+
+            <label>Gold 18K Rate (Per 10g):</label>
+            <input type="number" id="rate-18k" required>
+
+            <label>Silver Rate (Per 1kg):</label>
+            <input type="number" id="rate-silver-input" required>
+            
+            <button type="submit" class="admin-btn">Save Metal Rates</button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="admin-script.js"></script>
+  
+  <!-- SCRIPT TO LOAD SIGNUP USERS IN CUSTOMERS TAB -->
+  <script>
+    function loadRegisteredCustomers() {
+      const tbody = document.getElementById('admin-customers-list');
+      if (!tbody) return;
+
+      // Signup kiye huye users ko LocalStorage se read karna
+      const users = JSON.parse(localStorage.getItem('luxe_users')) || [];
+
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#777;">Koi bhi user signup nahi hua hai.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = users.map((u, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${u.name || 'N/A'}</strong></td>
+          <td>${u.email || 'N/A'}</td>
+          <td>+91 ${u.phone || 'N/A'}</td>
+          <td><code>${u.id || 'N/A'}</code></td>
+          <td>
+            <button onclick="deleteRegisteredUser('${u.id}')" style="background:#d9534f; color:#fff; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; font-size:12px;">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function deleteRegisteredUser(userId) {
+      if (confirm("Kya aap is Customer ko delete karna chahte hain?")) {
+        let users = JSON.parse(localStorage.getItem('luxe_users')) || [];
+        users = users.filter(u => u.id !== userId);
+        localStorage.setItem('luxe_users', JSON.stringify(users));
+        loadRegisteredCustomers();
+      }
+    }
+
+    // Page Load hote hi data render karein
+    document.addEventListener('DOMContentLoaded', () => {
+      loadRegisteredCustomers();
+    });
+  </script>
+</body>
+</html>

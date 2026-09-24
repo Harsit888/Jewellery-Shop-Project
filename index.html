@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Jewelry Store | Fine Gold & Silver</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Razorpay Payment Gateway SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+  
+  <!-- CDN for PDF Invoice Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- HEADER NAVIGATION -->
+  <header>
+    <div class="logo">LUXE JEWELS</div>
+    <div class="header-right">
+      <button class="auth-btn" id="auth-nav-btn" onclick="openAuthModal()">Login / Sign Up</button>
+      <button class="orders-nav-btn" onclick="openOrdersModal()">My Orders</button>
+      <button class="wishlist-icon" onclick="openWishlistModal()" title="View Wishlist">
+        ❤️ (<span id="wishlist-count">0</span>)
+      </button>
+      <button class="cart-icon" onclick="toggleCart()" title="View Cart">
+        🛒 Cart (<span id="cart-count">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- LIVE GOLD & SILVER RATES TICKER BAR -->
+  <div class="metal-ticker-bar">
+    <div class="ticker-title">
+      <span>🔥</span> <span>Live Market Rates:</span>
+    </div>
+    <div class="ticker-rates">
+      <span>Gold 24K (10g): <strong id="rate-gold-24k">Loading...</strong></span>
+      <span>Gold 22K (10g): <strong id="rate-gold-22k">Loading...</strong></span>
+      <span>Silver (1kg): <strong id="rate-silver">Loading...</strong></span>
+    </div>
+  </div>
+
+  <!-- HERO BANNER SECTION -->
+  <section class="hero">
+    <h1>Timeless Elegance & Fine Jewelry</h1>
+    <p>Handcrafted Gold & Diamond Collections</p>
+  </section>
+
+  <!-- SEARCH, FILTER & SORT SECTION -->
+  <section class="filter-section">
+    <div class="search-sort-row">
+      <input type="text" id="search-input" placeholder="Search jewelry by name or material..." oninput="filterProducts()">
+      
+      <div class="sort-box">
+        <label for="sort-select">Sort By:</label>
+        <select id="sort-select" onchange="filterProducts()">
+          <option value="featured">Featured</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="top-rated">Top Rated</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Max Price Range Slider -->
+    <div class="price-slider-box">
+      <label for="price-range">Max Price: ₹<span id="price-val">500000</span></label>
+      <input type="range" id="price-range" min="1000" max="500000" step="5000" value="500000" oninput="updatePriceSlider(this.value)">
+    </div>
+
+    <!-- CATEGORY BUTTONS -->
+    <div class="category-buttons">
+      <button class="filter-btn active" id="btn-all" onclick="setCategory('All', this)">All</button>
+      <button class="filter-btn" id="btn-rings" onclick="setCategory('Rings', this)">Rings</button>
+      <button class="filter-btn" id="btn-necklaces" onclick="setCategory('Necklaces', this)">Necklaces</button>
+      <button class="filter-btn" id="btn-bracelets" onclick="setCategory('Bracelets', this)">Bracelets</button>
+      <button class="filter-btn" id="btn-pendant" onclick="setCategory('Pendant', this)">Pendant</button>
+      <button class="filter-btn" id="btn-gold" onclick="setCategory('Gold', this)">Gold</button>
+      <button class="filter-btn" id="btn-silver" onclick="setCategory('Silver', this)">Silver</button>
+    </div>
+  </section>
+
+  <!-- PRODUCTS GRID CONTAINER -->
+  <section class="products-container">
+    <div class="product-grid" id="product-list">
+      <!-- Dynamic Products populated by script.js -->
+    </div>
+  </section>
+
+  <!-- SIDEBAR CART -->
+  <aside class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+      <h3>Your Shopping Bag</h3>
+      <button onclick="toggleCart()" class="close-btn" aria-label="Close Cart">✕</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <div class="promo-container">
+        <input type="text" id="promo-input" placeholder="Coupons: LUXE10, WELCOME50">
+        <button onclick="applyPromoCode()">Apply</button>
+      </div>
+      <div class="discount-row" id="discount-row" style="display: none;">
+        <span>Discount:</span>
+        <strong style="color: #28a745;">-₹<span id="discount-amount">0</span></strong>
+      </div>
+      <h4>Total: ₹<span id="cart-total">0</span></h4>
+      <button class="checkout-btn" onclick="checkout()">Checkout</button>
+    </div>
+  </aside>
+
+  <!-- RING SIZE CALCULATOR MODAL -->
+  <div class="modal-overlay" id="size-guide-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Ring Size Calculator Guide</h2>
+        <button class="close-modal-btn" onclick="closeSizeGuideModal()">✕</button>
+      </div>
+      <div class="size-guide-body">
+        <p>Measure the inner diameter of a ring that fits your finger using a ruler, then find your size:</p>
+        
+        <div class="calculator-box">
+          <label for="diameter-input"><strong>Finger Diameter (mm):</strong></label>
+          <input type="number" step="any" id="diameter-input" placeholder="e.g. 16.5">
+          <button class="place-order-btn" onclick="calculateRingSize()">Calculate My Size</button>
+        </div>
+
+        <div id="size-result"></div>
+
+        <table class="size-table">
+          <thead>
+            <tr><th>Inner Diameter</th><th>Indian/US Size</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>15.7 mm</td><td>Size 5</td></tr>
+            <tr><td>16.5 mm</td><td>Size 6</td></tr>
+            <tr><td>17.3 mm</td><td>Size 7</td></tr>
+            <tr><td>18.1 mm</td><td>Size 8</td></tr>
+            <tr><td>18.9 mm</td><td>Size 9</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- WISHLIST MODAL -->
+  <div class="modal-overlay" id="wishlist-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Your Saved Favorites</h2>
+        <button class="close-modal-btn" onclick="closeWishlistModal()">✕</button>
+      </div>
+      <div class="cart-items" id="wishlist-items-container"></div>
+    </div>
+  </div>
+
+  <!-- ORDER HISTORY MODAL -->
+  <div class="modal-overlay" id="orders-modal">
+    <div class="modal-content orders-card">
+      <div class="modal-header">
+        <h2>My Order History</h2>
+        <button class="close-modal-btn" onclick="closeOrdersModal()">✕</button>
+      </div>
+      <div id="orders-history-container" class="orders-history-container"></div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL OVERLAY -->
+  <div class="modal-overlay" id="checkout-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Shipping Details</h2>
+        <button class="close-modal-btn" onclick="closeCheckoutModal()">✕</button>
+      </div>
+      
+      <form id="shipping-form" onsubmit="handleOrderSubmit(event)">
+        <div class="form-group">
+          <label for="full-name">Full Name</label>
+          <input type="text" id="full-name" required placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" required placeholder="john@example.com">
+        </div>
+        <div class="form-group">
+          <label for="address">Shipping Address</label>
+          <input type="text" id="address" required placeholder="123 Luxury Lane, City">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone-input">Phone Number</label>
+          <div class="phone-input-container">
+            <span class="phone-prefix">+91</span>
+            <input 
+              type="tel" 
+              id="phone-input" 
+              placeholder="9876543210" 
+              maxlength="10" 
+              minlength="10"
+              pattern="[0-9]{10}"
+              title="Please enter exactly 10 digits"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+              required
+            />
+          </div>
+        </div>
+        
+        <div class="modal-order-summary">
+          <span>Total Amount:</span>
+          <strong style="color: #b8860b;">₹<span id="modal-total">0</span></strong>
+        </div>
+
+        <button type="submit" class="place-order-btn">Proceed to Payment</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- AUTHENTICATION MODAL -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-content auth-card">
+      <div class="modal-header">
+        <h2 id="auth-modal-title">Welcome Back</h2>
+        <button class="close-modal-btn" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Email or Phone</label>
+          <input type="text" id="login-email" required placeholder="john@example.com or Phone">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="place-order-btn">Log In</button>
+        <p class="auth-switch-text">Don't have an account? <a href="javascript:void(0)" onclick="switchAuthMode('signup')">Sign Up</a></p>
+      </form>
+
+      <form id="signup-form" style="display: none;" onsubmit="handleSignup(event)">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" required placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" required placeholder="john@example.com">
+        </div>
+        <div class="form-group">
+          <label for="signup-phone">Phone Number (+91)</label>
+          <input type="tel" id="signup-phone" required placeholder="9876543210" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="place-order-btn">Create Account</button>
+        <p class="auth-switch-text">Already have an account? <a href="javascript:void(0)" onclick="switchAuthMode('login')">Log In</a></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD MODAL -->
+  <div class="modal-overlay" id="admin-modal">
+    <div class="modal-content" style="max-width: 800px; width: 90%;">
+      <div class="modal-header">
+        <h2>👑 Admin Dashboard</h2>
+        <button class="close-modal-btn" onclick="closeAdminModal()">✕</button>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #ddd; padding-bottom:10px;">
+        <button onclick="switchAdminTab('users')" id="tab-users-btn" class="place-order-btn" style="width:auto; padding:8px 15px;">Registered Users</button>
+        <button onclick="switchAdminTab('orders')" id="tab-orders-btn" class="filter-btn" style="width:auto; padding:8px 15px;">All Orders</button>
+      </div>
+
+      <div id="admin-users-tab">
+        <h3 style="margin-bottom:10px;">Registered User Accounts</h3>
+        <div id="admin-users-list" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+
+      <div id="admin-orders-tab" style="display:none;">
+        <h3 style="margin-bottom:10px;">Placed Orders</h3>
+        <div id="admin-orders-list" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="modal-overlay" id="product-detail-modal">
+    <div class="modal-content product-detail-card">
+      <button class="close-modal-btn" onclick="closeProductDetailModal()">✕</button>
+      <div class="product-detail-layout" id="product-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER SECTION -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-col">
+        <div class="logo">LUXE JEWELS</div>
+        <p>Crafting timeless elegance and fine diamond jewelry since 1998.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="javascript:void(0)" onclick="footerFilter('All')">Shop All</a></li>
+          <li><a href="javascript:void(0)" onclick="footerFilter('Rings')">Rings Collection</a></li>
+          <li><a href="javascript:void(0)" onclick="footerFilter('Necklaces')">Diamond Necklaces</a></li>
+          <li><a href="javascript:void(0)" onclick="footerFilter('Bracelets')">Bracelets & Bands</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Customer Care</h4>
+        <ul>
+          <li><a href="javascript:void(0)" onclick="openOrdersModal()">Track Order</a></li>
+          <li><a href="javascript:void(0)" onclick="openSizeGuideModal()">Ring Size Calculator</a></li>
+          <li><a href="javascript:void(0)" onclick="showFooterInfo('Returns & Exchange', 'We offer a 30-day no-questions-asked return policy for all unworn jewelry in original packaging.')">Returns & Exchange</a></li>
+          <li><a href="javascript:void(0)" onclick="showFooterInfo('Contact Support', 'Need help? Email us at care@luxejewels.com or call +91 1800-123-4567.')">Contact Support</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect With Us</h4>
+        <p>Email: care@luxejewels.com</p>
+        <p>Phone: +91 1800-123-4567</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Luxe Jewels. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js" defer></script>
+  
+  <!-- METAL RATES TICKER SCRIPT -->
+  <script>
+    async function fetchMetalRates() {
+      try {
+        const response = await fetch('/api/metal-rates');
+        if (response.ok) {
+          const result = await response.json();
+          if (result && result.success) {
+            updateTickerDisplay(result.data);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("API Rates fetch failed, checking LocalStorage fallback...");
+      }
+
+      const localRates = JSON.parse(localStorage.getItem('luxe_metal_rates'));
+      updateTickerDisplay(localRates || {
+        gold24k_10g: 72000,
+        gold22k_10g: 66000,
+        silver_1kg: 85000
+      });
+    }
+
+    function updateTickerDisplay(rates) {
+      const rate24k = rates.gold24k_10g || rates.gold24k;
+      const rate22k = rates.gold22k_10g || rates.gold22k;
+      const rateSilver = rates.silver_1kg || rates.silver;
+
+      const el24k = document.getElementById('rate-gold-24k');
+      const el22k = document.getElementById('rate-gold-22k');
+      const elSilver = document.getElementById('rate-silver');
+
+      if (el24k && rate24k) el24k.innerText = '₹' + Number(rate24k).toLocaleString('en-IN');
+      if (el22k && rate22k) el22k.innerText = '₹' + Number(rate22k).toLocaleString('en-IN');
+      if (elSilver && rateSilver) elSilver.innerText = '₹' + Number(rateSilver).toLocaleString('en-IN');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchMetalRates();
+      setInterval(fetchMetalRates, 300000);
+    });
+  </script>
+</body>
+</html>
